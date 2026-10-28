@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // One document per household. The long random household code is the key:
+    // anyone who knows it can use the board, and nobody can list households.
+    match /households/{householdId} {
+      allow get, create, update: if householdId.size() >= 10;
+      allow list, delete: if false;
+    }
+  }
+}
