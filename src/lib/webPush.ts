@@ -23,9 +23,19 @@ export function webMessaging(): Promise<Messaging | null> {
   return messaging;
 }
 
-export function serviceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return Promise.resolve(null);
-  return navigator.serviceWorker.register('/sw.js').catch(() => null);
+/**
+ * The service worker once it is active. `register()` can resolve while the worker is still
+ * installing (on a first visit, for example), and showing a notification or getting a push
+ * token then fails, so wait for `ready`.
+ */
+export async function serviceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
+  try {
+    await navigator.serviceWorker.register('/sw.js');
+    return await navigator.serviceWorker.ready;
+  } catch {
+    return null;
+  }
 }
 
 /** iPhones only allow web alerts once the page has been added to the home screen. */
