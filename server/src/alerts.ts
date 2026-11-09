@@ -2,8 +2,11 @@
 import { addDays, dueAt, occurrences, startOfDay } from './shared/schedule';
 import type { Household } from './shared/types';
 
-/** How late an alert may still be sent, e.g. after a missed run. */
-export const LATE_LIMIT_MINUTES = 15;
+/**
+ * How late an alert may still be sent. GitHub's scheduled runs are often 10+ minutes
+ * late, so this is generous; an alert is still only ever sent once.
+ */
+export const LATE_LIMIT_MINUTES = 45;
 
 export interface DueAlert {
   key: string;
@@ -48,7 +51,7 @@ export function dueAlerts(h: Household, now: Date): DueAlert[] {
       key: o.key,
       memberId: h.assign[o.key],
       title: `Time for: ${o.chore.name}`,
-      body: `Due now (${o.time}). Tap to mark it done.`,
+      body: `Due at ${o.time}. Tap to mark it done.`,
     }));
 }
 

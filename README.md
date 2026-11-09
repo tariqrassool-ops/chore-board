@@ -3,7 +3,9 @@
 A shared daily chore board for the household. Chores are shared out fairly by effort points, and each person's phone alerts them when one of their chores is due, even if the phone is locked or another app is open.
 
 - **Android:** the Chore Board app. It sets a full-screen alarm with sound that keeps ringing until it's marked done, snoozed or dismissed, like the Clock app.
-- **iPhone:** the same board as a web app added to the home screen from Safari (iOS 16.4 or later). Alerts arrive as notifications with sound on the lock screen and over other apps, sent by a small server task within about two minutes of the chore's time. No App Store or Apple developer account is needed.
+- **iPhone:** the same board as a web app added to the home screen from Safari (iOS 16.4 or later). Alerts arrive as notifications with sound on the lock screen and over other apps. A GitHub scheduled job sends them, usually within 5 to 15 minutes of the chore's time. No App Store or Apple developer account is needed.
+
+Everything runs on free plans: Firebase's free Spark plan and GitHub Actions on a public repository.
 
 ## How chores are shared
 
@@ -13,42 +15,42 @@ The logic is in [`src/lib/schedule.ts`](src/lib/schedule.ts) with tests in `sche
 
 ## One-time setup
 
-### 1. Create the Firebase project
+### 1. Create the Firebase project (free Spark plan)
 
-Firebase holds the shared board, hosts the web board and sends the iPhone alerts.
+Firebase holds the shared board, hosts the web board and delivers the iPhone alerts.
 
-1. Go to <https://console.firebase.google.com>, choose **Create a project**, and give it any name. Google Analytics isn't needed.
+1. Go to <https://console.firebase.google.com>, choose **Create a project**, and give it any name. Google Analytics isn't needed. Stay on the free Spark plan.
 2. Open **Build › Firestore Database**, choose **Create database**, pick a location near you, and start in **production mode**.
 3. Open **Project settings** (the gear), scroll to **Your apps**, and add a **Web app** (the `</>` button). Copy the values from the config it shows.
 4. In **Project settings › Cloud Messaging › Web Push certificates**, choose **Generate key pair** and copy the key.
-5. Copy `.env.example` to `.env` and paste each value in, including the key from step 4 as `EXPO_PUBLIC_FIREBASE_VAPID_KEY`. These values identify the project and are safe to keep in the app.
-6. Switch the project to the **Blaze (pay as you go)** plan (the plan name at the bottom left of the console). The alert server needs it, but a household's use stays inside the free allowance, so it should cost nothing. Set a budget alert of £1 when asked so you'd hear about any charge.
+5. Put the values from steps 3 and 4 in `.env.production` (same names as `.env.example`) and commit it. These values identify the project; they are not passwords and are safe in a public repository.
 
-### 2. Put the web board and alert server online
+### 2. Make the repository public
 
-```bash
-npm install
-npx firebase-tools@latest login
-npx firebase-tools@latest use --add      # pick the project from step 1
-npm run deploy                           # web board, alert server and database rules
-```
+GitHub Actions is only free without limits on public repositories, and the iPhone alerts run there. On GitHub: **Settings › General › Danger Zone › Change visibility › Public**. Nothing private is in the repository: the Firebase key in the next step is stored as an encrypted secret, and household data lives in Firebase.
 
-The command prints the board's web address (`https://<project>.web.app`). iPhones open this in Safari.
+### 3. Give GitHub the Firebase key
 
-### 3. Build the Android app
+1. In Firebase, **Project settings › Service accounts › Generate new private key**. A `.json` file downloads.
+2. On GitHub, **Settings › Secrets and variables › Actions › New repository secret**. Name it `FIREBASE_SERVICE_ACCOUNT` and paste the whole contents of the file. Then delete the file.
+3. Run **Actions › Deploy web board › Run workflow**. When it finishes, the board is at `https://<project-id>.web.app`. If it fails with a permission error, open <https://console.cloud.google.com/iam-admin/iam>, find the `firebase-adminsdk` account, and add the **Firebase Admin** role.
+
+From then on, every change to `main` redeploys the board, and **Chore alerts** runs about every 5 minutes. GitHub pauses scheduled jobs in a repository with no activity for 60 days and emails you first; re-enable it under **Actions › Chore alerts**.
+
+### 4. Build the Android app
 
 Builds run on Expo's servers, so no Android Studio is needed. You need a free account at <https://expo.dev>.
 
 ```bash
 npx eas-cli@latest login
 npx eas-cli@latest init                  # links the project to your Expo account
-# Add each value from .env under Environment variables in the Expo dashboard (preview environment), then:
+# .env.production is read automatically, then:
 npm run build:android                    # gives a download link for an .apk
 ```
 
 Open the build link on each Android phone, download the APK and install it (allow "Install unknown apps" when asked).
 
-### 4. On each phone
+### 5. On each phone
 
 1. **Android:** open the Chore Board app. **iPhone:** open the board's web address in Safari, tap **Share › Add to Home Screen**, then open Chore Board from the home screen.
 2. The first person chooses **Start a new household**. Everyone else chooses **Join one** and enters the code from **Alarms & sharing** on the first phone.
@@ -74,4 +76,4 @@ The app uses Expo Router (`src/app`), Firebase Firestore for the shared board (o
 
 - **Android app:** each phone schedules its own alarms locally for the next 7 days and refreshes them whenever the board changes or the app is opened, so alarms ring even with no internet. Open the app at least once a week to keep them topped up.
 - **Web board (iPhone):** the same code built for the web (`npm run build:web`). Files ending `.web.ts` replace their native versions there. Each browser registers under `households/<code>/devices` once alerts are on, and `public/sw.js` shows the pushes.
-- **Alert server (`functions/`):** a Cloud Function that runs every 2 minutes, finds chores that have just come due in each household's time zone, and pushes to that person's registered browsers. It reuses `src/lib/schedule.ts`. Test it with `npm --prefix functions test`.
+- **Alert job (`server/`, run by `.github/workflows/alerts.yml`):** checks once per run for chores that have come due in the last 45 minutes in each household's time zone, and pushes to that person's registered browsers, each alert once. It reuses `src/lib/schedule.ts`. Test it with `npm --prefix server test`.

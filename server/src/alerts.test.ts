@@ -41,7 +41,7 @@ test('skips chores that are done or already alerted', () => {
 });
 
 test('gives up on alerts that are too late', () => {
-  assert.equal(dueAlerts(household(), new Date('2026-11-09T18:20:00Z')).length, 0);
+  assert.equal(dueAlerts(household(), new Date('2026-11-09T18:50:00Z')).length, 0);
 });
 
 test('uses the household time zone, not the server one', () => {
