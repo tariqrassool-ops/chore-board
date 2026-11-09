@@ -30,6 +30,7 @@ export function normalize(data: Partial<Household> | undefined): Household {
   if (!data) return h;
   return {
     name: data.name || h.name,
+    ...(data.timeZone ? { timeZone: data.timeZone } : {}),
     members: Array.isArray(data.members) ? data.members : [],
     chores: Array.isArray(data.chores) ? data.chores : [],
     assign: data.assign ?? {},
@@ -52,6 +53,8 @@ export async function householdExists(householdId: string): Promise<boolean> {
 export async function createHousehold(name: string, firstMember: Member, starterChores: Chore[]): Promise<string> {
   const id = randomId(12);
   const h: Household = { ...emptyHousehold(name), members: [firstMember], chores: starterChores };
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (tz) h.timeZone = tz;
   h.assign = plan(h, new Date());
   await setDoc(ref(id), h);
   return id;
@@ -113,4 +116,8 @@ export async function saveChores(householdId: string, chores: Chore[], dropKeysF
 
 export async function renameHousehold(householdId: string, name: string): Promise<void> {
   await updateDoc(ref(householdId), { name });
+}
+
+export async function setTimeZone(householdId: string, timeZone: string): Promise<void> {
+  await updateDoc(ref(householdId), { timeZone });
 }

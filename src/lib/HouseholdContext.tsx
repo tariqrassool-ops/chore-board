@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { syncAlarms } from './alarms';
 import { firebaseConfigured } from './firebase';
 import { loadIdentity, saveIdentity, type Identity } from './identity';
-import { subscribe, topUp } from './store';
+import { setTimeZone, subscribe, topUp } from './store';
 import type { Household } from './types';
 
 type Status = 'loading' | 'not-configured' | 'needs-setup' | 'ready' | 'missing' | 'error';
@@ -52,6 +52,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         setStatus(identity.memberId && h.members.some((m) => m.id === identity.memberId) ? 'ready' : 'needs-setup');
         // Deal out any chores that nobody has yet. Once written, the next snapshot has nothing to add.
         topUp(id, h).catch(() => {});
+        // The alert server needs to know which time zone chore times are in.
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz && !h.timeZone) setTimeZone(id, tz).catch(() => {});
       },
       (e) => {
         setError(e.message);
@@ -63,11 +66,11 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const resyncAlarms = useCallback(async () => {
     if (!latest.current) return;
     try {
-      setAlarmCount(await syncAlarms(latest.current, identity.memberId));
+      setAlarmCount(await syncAlarms(latest.current, identity.householdId ?? '', identity.memberId));
     } catch {
       // Permissions not granted yet; the Alarms screen explains how to fix it.
     }
-  }, [identity.memberId]);
+  }, [identity.householdId, identity.memberId]);
 
   // Keep this phone's alarms in step with the board, and refresh when the app comes back.
   useEffect(() => {

@@ -59,12 +59,16 @@ export interface DoneRecord {
 /** The whole household lives in one Firestore document. */
 export interface Household {
   name: string;
+  /** IANA time zone the chore times are in, e.g. "Europe/London". Used by the alert server. */
+  timeZone?: string;
   members: Member[];
   chores: Chore[];
   /** occurrence key ("choreId|YYYY-MM-DD") -> member id */
   assign: Record<string, string>;
   /** occurrence key -> who did it */
   done: Record<string, DoneRecord>;
+  /** occurrence key -> when the alert server sent its web push (ms). Written only by functions/. */
+  alerted?: Record<string, number>;
 }
 
 export interface Occurrence {

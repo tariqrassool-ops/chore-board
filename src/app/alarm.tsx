@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
-import notifee from 'react-native-notify-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { alarmNotification, snooze, SNOOZE_MINUTES } from '../lib/alarms';
+import { cancelAlarm, snoozeChore, SNOOZE_MINUTES, supportsSnooze } from '../lib/alarms';
 import { useHousehold } from '../lib/HouseholdContext';
 import { splitKey } from '../lib/schedule';
 import { markDone } from '../lib/store';
@@ -20,7 +19,7 @@ export default function Alarm() {
   const owner = household?.members.find((m) => m.id === (household.assign[key] ?? memberId));
 
   const close = async () => {
-    if (id) await notifee.cancelNotification(id);
+    await cancelAlarm(id);
     if (router.canGoBack()) router.back();
     else router.replace('/');
   };
@@ -33,7 +32,7 @@ export default function Alarm() {
   };
 
   const later = async () => {
-    await snooze(alarmNotification(id ?? '', `Time for: ${chore?.name ?? 'your chore'}`, 'Snoozed reminder.', { key }));
+    await snoozeChore(key, `Time for: ${chore?.name ?? 'your chore'}`);
     await close();
   };
 
@@ -46,7 +45,7 @@ export default function Alarm() {
       </View>
       <View style={{ gap: 12 }}>
         <Button kind="primary" big label="Done" onPress={done} />
-        <Button big label={`Snooze ${SNOOZE_MINUTES} minutes`} onPress={later} />
+        {supportsSnooze && <Button big label={`Snooze ${SNOOZE_MINUTES} minutes`} onPress={later} />}
         <Button kind="ghost" label="Dismiss" onPress={close} />
       </View>
     </View>

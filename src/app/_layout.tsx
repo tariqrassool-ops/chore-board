@@ -1,36 +1,18 @@
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import notifee, { EventType, type Notification } from 'react-native-notify-kit';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ACTION_DONE, ACTION_SNOOZE, dismiss, prepareAlarms, snooze } from '../lib/alarms';
-import { finishFromAlarm } from '../lib/finish';
+import { subscribeAlarmEvents } from '../lib/alarmEvents';
 import { HouseholdProvider } from '../lib/HouseholdContext';
 import { useTheme } from '../ui/theme';
-
-function openAlarm(n: Notification | undefined) {
-  const key = n?.data?.key;
-  if (typeof key === 'string') router.push({ pathname: '/alarm', params: { key, id: n?.id ?? '' } });
-}
 
 export default function RootLayout() {
   const t = useTheme();
 
-  useEffect(() => {
-    prepareAlarms().catch(() => {});
-    // Opened by tapping an alarm, or by Android's full-screen alarm.
-    notifee.getInitialNotification().then((initial) => openAlarm(initial?.notification));
-    return notifee.onForegroundEvent(async ({ type, detail }) => {
-      const n = detail.notification;
-      if (!n) return;
-      if (type === EventType.DELIVERED || type === EventType.PRESS) openAlarm(n);
-      if (type === EventType.ACTION_PRESS && detail.pressAction?.id === ACTION_SNOOZE) await snooze(n);
-      if (type === EventType.ACTION_PRESS && detail.pressAction?.id === ACTION_DONE) {
-        await finishFromAlarm(n.data?.key as string | undefined);
-        await dismiss(n);
-      }
-    });
-  }, []);
+  useEffect(
+    () => subscribeAlarmEvents((key, id) => router.push({ pathname: '/alarm', params: { key, id } })),
+    [],
+  );
 
   return (
     <SafeAreaProvider>

@@ -33,9 +33,21 @@
       ],
       "predictiveBackGestureEnabled": false
     },
-    "plugins": ["expo-router", "react-native-notify-kit"],
+    "plugins": [
+      "expo-router",
+      "react-native-notify-kit"
+    ],
     "experiments": {
       "typedRoutes": false
+    },
+    "web": {
+      "output": "single",
+      "bundler": "metro",
+      "name": "Chore Board",
+      "shortName": "Chores",
+      "themeColor": "#17221f",
+      "backgroundColor": "#eef2f1",
+      "favicon": "./assets/favicon.png"
     }
   }
 }
