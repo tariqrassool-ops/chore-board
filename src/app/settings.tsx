@@ -34,6 +34,7 @@ export default function Settings() {
 
   return (
     <Screen>
+      {Platform.OS === 'web' ? <WebAlerts perms={perms} me={me?.name} count={alarmCount} onAllow={allow} /> : (
       <Card>
         <H2>Alarms on this phone</H2>
         <Body>
@@ -60,23 +61,19 @@ export default function Settings() {
           }}
         />
         {note && <Body muted>{note}</Body>}
-        {Platform.OS === 'android' ? (
-          <Body muted>
-            If the alarm only shows as a small notification, open alert settings and turn on "Full screen notifications" (sometimes called
-            "Full-screen intent") for Chore Board. Also turn off battery optimisation for the app so alarms aren't delayed.
-          </Body>
-        ) : (
-          <Body muted>
-            On iPhone the alarm appears on the lock screen and over other apps with a sound. If you use a Focus mode, allow Chore Board under
-            Settings › Focus so time-sensitive alerts get through. The ring switch must be on to hear it.
-          </Body>
-        )}
+        <Body muted>
+          If the alarm only shows as a small notification, open alert settings and turn on "Full screen notifications" (sometimes called
+          "Full-screen intent") for Chore Board. Also turn off battery optimisation for the app so alarms aren't delayed.
+        </Body>
         <Button kind="ghost" label="Open alert settings" onPress={() => openNotificationSettings()} />
       </Card>
+      )}
 
       <Card>
         <H2>Add someone's phone</H2>
-        <Body muted>Install Chore Board on their phone, choose "Join one", and enter this code:</Body>
+        <Body muted>
+          Android: install the Chore Board app. iPhone: open the board's web address in Safari. Then choose "Join one" and enter this code:
+        </Body>
         <Text selectable style={{ color: t.fg, fontSize: 26, fontWeight: '800', letterSpacing: 2, fontVariant: ['tabular-nums'] }}>{householdId}</Text>
         <Button label="Share code" onPress={() => Share.share({ message: `Join our Chore Board. Household code: ${householdId}` })} />
       </Card>
@@ -100,5 +97,48 @@ function Status({ ok, label }: { ok: boolean | undefined; label: string }) {
     <Text style={{ color: ok ? t.accent : t.warn, fontWeight: '700' }}>
       {ok ? '✓' : '✕'} {label}
     </Text>
+  );
+}
+
+/** iPhones (and any browser) get alerts as web pushes sent by the server. */
+function WebAlerts({ perms, me, count, onAllow }: { perms: AlarmPermissions | null; me?: string; count: number; onAllow: () => void }) {
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <Card>
+      <H2>Alerts on this phone</H2>
+      {perms?.needsHomeScreen ? (
+        <>
+          <Body>To get alerts on an iPhone, add the board to your home screen first:</Body>
+          <Body muted>1. Tap the Share button at the bottom of Safari.</Body>
+          <Body muted>2. Choose "Add to Home Screen", then Add.</Body>
+          <Body muted>3. Open Chore Board from the home screen and come back here.</Body>
+        </>
+      ) : (
+        <>
+          <Body>
+            This phone gets alerts for <Text style={{ fontWeight: '800' }}>{me ?? 'nobody'}</Text>.{' '}
+            {perms?.notifications ? `${count} alerts are coming in the next 7 days.` : 'Alerts are off.'}
+          </Body>
+          <Row>
+            <Status ok={perms?.notifications} label="Alerts allowed" />
+          </Row>
+          {!perms?.notifications && <Button kind="primary" label="Turn on alerts" onPress={onAllow} />}
+          {perms?.notifications && (
+            <Button
+              label="Show a test alert"
+              onPress={async () => {
+                await testAlarm();
+                setNote('A test alert should appear now.');
+              }}
+            />
+          )}
+          {note && <Body muted>{note}</Body>}
+          <Body muted>
+            Alerts arrive on the lock screen and over other apps with a sound, within a couple of minutes of the chore's time. The ring
+            switch must be on to hear them, and a Focus mode can hide them unless Chore Board is allowed.
+          </Body>
+        </>
+      )}
+    </Card>
   );
 }

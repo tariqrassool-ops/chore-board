@@ -6,6 +6,12 @@ service cloud.firestore {
     match /households/{householdId} {
       allow get, create, update: if householdId.size() >= 10;
       allow list, delete: if false;
+
+      // Phones using the web board register here so the alert server can reach them.
+      match /devices/{deviceId} {
+        allow get, create, update, delete: if householdId.size() >= 10;
+        allow list: if false;
+      }
     }
   }
 }

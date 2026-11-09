@@ -52,10 +52,15 @@ export async function prepareAlarms(): Promise<void> {
   prepared = true;
 }
 
+/** Native alarms can be snoozed from the phone itself. */
+export const supportsSnooze = true;
+
 export interface AlarmPermissions {
   notifications: boolean;
   /** Android 12+: exact timing. Always true on iOS. */
   exactAlarms: boolean;
+  /** Web only: iPhone needs the board added to the home screen before it can alert. */
+  needsHomeScreen?: boolean;
 }
 
 export async function requestAlarmPermissions(): Promise<AlarmPermissions> {
@@ -126,7 +131,7 @@ async function scheduleAt(when: number, n: Notification) {
  * Replace this phone's alarms with one per upcoming chore assigned to `memberId`.
  * Each phone only rings for its own person.
  */
-export async function syncAlarms(h: Household, memberId: string | null, now = new Date()): Promise<number> {
+export async function syncAlarms(h: Household, _householdId: string, memberId: string | null, now = new Date()): Promise<number> {
   await prepareAlarms();
   const existing = await notifee.getTriggerNotificationIds();
   const ours = existing.filter((id) => id.startsWith('chore:'));
@@ -168,4 +173,12 @@ export async function testAlarm(): Promise<void> {
     Date.now() + 10_000,
     alarmNotification('test:alarm', 'Test alarm', 'This is what a chore alarm looks and sounds like.', {}),
   );
+}
+
+export async function cancelAlarm(id?: string): Promise<void> {
+  if (id) await notifee.cancelNotification(id);
+}
+
+export async function snoozeChore(key: string, title: string): Promise<void> {
+  await snooze(alarmNotification('', title, 'Snoozed reminder.', { key }));
 }
