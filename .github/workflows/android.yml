@@ -1,0 +1,50 @@
+# Builds the Android app (an .apk to install on each Android phone) on Expo's free build service.
+# Run it from Actions › Build Android app › Run workflow. Needs the EXPO_TOKEN secret (see README step 4).
+name: Build Android app
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: android-build
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Free builds can wait in Expo's queue. If this times out, the build still finishes on expo.dev.
+    timeout-minutes: 120
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Check the Expo token is set
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::The EXPO_TOKEN secret is not set. See README step 4."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Link the project to the Expo account
+        # Creates the Expo project the first time, then finds it again on later runs.
+        run: npx --yes eas-cli@27.5.0 init --non-interactive --force
+      - name: Build the APK
+        run: |
+          npx --yes eas-cli@27.5.0 build --profile preview --platform android --non-interactive --json > "$RUNNER_TEMP/build.json"
+          URL=$(node -e "const b=require(process.argv[1])[0]; console.log(b.artifacts?.buildUrl || '')" "$RUNNER_TEMP/build.json")
+          PAGE=$(node -e "const b=require(process.argv[1])[0]; console.log('https://expo.dev/accounts/'+b.project.ownerAccount.name+'/projects/'+b.project.slug+'/builds/'+b.id)" "$RUNNER_TEMP/build.json")
+          echo "APK: $URL"
+          echo "Build page: $PAGE"
+          {
+            echo "## Android app is ready"
+            echo
+            echo "Open this on each Android phone to download and install it:"
+            echo
+            echo "**[Download Chore Board APK]($URL)**"
+            echo
+            echo "Build page (with a QR code): $PAGE"
+          } >> "$GITHUB_STEP_SUMMARY"
