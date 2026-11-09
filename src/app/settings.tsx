@@ -100,6 +100,8 @@ function Status({ ok, label }: { ok: boolean | undefined; label: string }) {
   );
 }
 
+const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
 /** iPhones (and any browser) get alerts as web pushes sent by the server. */
 function WebAlerts({ perms, me, count, onAllow }: { perms: AlarmPermissions | null; me?: string; count: number; onAllow: () => void }) {
   const [note, setNote] = useState<string | null>(null);
@@ -127,16 +129,39 @@ function WebAlerts({ perms, me, count, onAllow }: { perms: AlarmPermissions | nu
             <Button
               label="Show a test alert"
               onPress={async () => {
-                await testAlarm();
-                setNote('A test alert should appear now.');
+                try {
+                  await testAlarm();
+                  setNote(
+                    isAndroid
+                      ? 'A test alert should appear now. If it doesn\'t, see the Android steps below.'
+                      : 'A test alert should appear now.',
+                  );
+                } catch (e) {
+                  setNote(`The test alert couldn't be shown: ${e instanceof Error ? e.message : String(e)}`);
+                }
               }}
             />
           )}
           {note && <Body muted>{note}</Body>}
-          <Body muted>
-            Alerts arrive on the lock screen and over other apps with a sound, within a couple of minutes of the chore's time. The ring
-            switch must be on to hear them, and a Focus mode can hide them unless Chore Board is allowed.
-          </Body>
+          {isAndroid ? (
+            <>
+              <Body muted>
+                Alerts arrive as notifications with a sound, usually within 5 to 15 minutes of the chore's time. If the test alert doesn't
+                appear on Android:
+              </Body>
+              <Body muted>1. Open Settings › Apps › Chrome › Notifications and make sure notifications are on.</Body>
+              <Body muted>
+                2. In the same list, find the {location.host} site (under Sites) and set it to Alerting, with "Pop on screen" on.
+              </Body>
+              <Body muted>3. Turn off Do Not Disturb, or allow Chrome in it.</Body>
+              <Body muted>For a full-screen alarm that rings until it's dismissed, use the Chore Board Android app instead.</Body>
+            </>
+          ) : (
+            <Body muted>
+              Alerts arrive on the lock screen and over other apps with a sound, usually within 5 to 15 minutes of the chore's time. The
+              ring switch must be on to hear them, and a Focus mode can hide them unless Chore Board is allowed.
+            </Body>
+          )}
         </>
       )}
     </Card>

@@ -48,11 +48,14 @@ export async function syncAlarms(h: Household, householdId: string, memberId: st
 /** Shows an alert straight away, so people can check alerts are allowed and how they look. */
 export async function testAlarm(): Promise<void> {
   const reg = await serviceWorker();
-  await reg?.showNotification('Test alert', {
+  if (!reg) throw new Error('This browser could not start the alert service. Reload the page and try again.');
+  await reg.showNotification('Test alert', {
     body: 'This is what a chore alert looks like.',
-    tag: 'test',
+    // A new tag each time, so a second test shows again instead of silently replacing the first.
+    tag: `test-${Date.now()}`,
     requireInteraction: true,
     icon: '/icon-192.png',
+    badge: '/icon-192.png',
   });
 }
 
