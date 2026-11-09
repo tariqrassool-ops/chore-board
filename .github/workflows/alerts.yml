@@ -1,4 +1,4 @@
-# Sends iPhone chore alerts. GitHub runs this about every 5 minutes (often a little late);
+# Sends iPhone chore alerts. GitHub runs this about every 5 minutes (often a little late); ok
 # each run pushes any chore that has just come due to that person's phone.
 name: Chore alerts
 
