@@ -39,16 +39,16 @@ From then on, every change to `main` redeploys the board, and **Chore alerts** r
 
 ### 4. Build the Android app
 
-Builds run on Expo's servers, so no Android Studio is needed. You need a free account at <https://expo.dev>.
+Builds run on Expo's free build service from a GitHub job, so nothing needs installing on a computer.
 
-```bash
-npx eas-cli@latest login
-npx eas-cli@latest init                  # links the project to your Expo account
-# .env.production is read automatically, then:
-npm run build:android                    # gives a download link for an .apk
-```
+1. Make a free account at <https://expo.dev>.
+2. On expo.dev, open your account menu › **Account settings › Access tokens**, choose **Create token**, name it `github`, and copy it.
+3. On GitHub, **Settings › Secrets and variables › Actions › New repository secret**. Name it `EXPO_TOKEN` and paste the token.
+4. Run **Actions › Build Android app › Run workflow**. Free builds can wait in a queue first. When it finishes, the run's summary has a **Download Chore Board APK** link.
 
-Open the build link on each Android phone, download the APK and install it (allow "Install unknown apps" when asked).
+Open that link on each Android phone, download the APK and install it (allow "Install unknown apps" when asked). Run the workflow again whenever the app changes; installing the new APK keeps the phone's settings.
+
+To build from a computer instead: `npx eas-cli@latest login`, `npx eas-cli@latest init`, then `npm run build:android`.
 
 ### 5. On each phone
 
