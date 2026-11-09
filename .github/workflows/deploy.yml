@@ -1,0 +1,54 @@
+# Puts the web board (used by iPhones) and the database rules online whenever main changes.
+# Uses Firebase's free plan: Hosting and Firestore rules only.
+name: Deploy web board
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Check the Firebase key is set
+        id: key
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT secret is not set yet, so nothing was deployed. See README step 3."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check and build
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          if [ ! -f .env.production ]; then
+            echo "::error::.env.production is missing, so the web board wouldn't know which Firebase project to use. See README step 1."
+            exit 1
+          fi
+          npm ci --no-audit --no-fund
+          npx tsc --noEmit
+          npx jest
+          npm run build:web
+      - name: Deploy to Firebase
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/key.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/key.json"
+          PROJECT=$(node -e "console.log(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT).project_id)")
+          npx --yes firebase-tools@15 deploy --only hosting,firestore:rules --project "$PROJECT" --non-interactive
+          rm "$RUNNER_TEMP/key.json"

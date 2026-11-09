@@ -1,4 +1,4 @@
-// The functions deploy only uploads this folder, so copy the app's scheduling logic in before building.
+// The alert script builds from this folder, so copy the app's scheduling logic in before building.
 const fs = require('fs');
 const path = require('path');
 

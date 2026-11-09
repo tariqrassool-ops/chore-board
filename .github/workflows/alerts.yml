@@ -1,0 +1,43 @@
+# Sends iPhone chore alerts. GitHub runs this about every 5 minutes (often a little late);
+# each run pushes any chore that has just come due to that person's phone.
+name: Chore alerts
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: chore-alerts
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Check the Firebase key is set
+        id: key
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT secret is not set yet, so no alerts were sent. See README step 3."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Send alerts
+        if: steps.key.outputs.ready == 'true'
+        working-directory: server
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm start
