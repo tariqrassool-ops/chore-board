@@ -146,8 +146,8 @@ function WebAlerts({ perms, me, count, onAllow }: { perms: AlarmPermissions | nu
           {isAndroid ? (
             <>
               <Body muted>
-                Alerts arrive as notifications with a sound, usually within 5 to 15 minutes of the chore's time. If the test alert doesn't
-                appear on Android:
+                Alerts arrive as notifications with a sound, usually within 5 to 15 minutes of the chore's time, and come again about every 5
+                minutes until the chore is marked done. If the test alert doesn't appear on Android:
               </Body>
               <Body muted>1. Open Settings › Apps › Chrome › Notifications and make sure notifications are on.</Body>
               <Body muted>
@@ -158,7 +158,8 @@ function WebAlerts({ perms, me, count, onAllow }: { perms: AlarmPermissions | nu
             </>
           ) : (
             <Body muted>
-              Alerts arrive on the lock screen and over other apps with a sound, usually within 5 to 15 minutes of the chore's time. The
+              Alerts arrive on the lock screen and over other apps with a sound, usually within 5 to 15 minutes of the chore's time, and
+              come again about every 5 minutes until the chore is marked done. The
               ring switch must be on to hear them, and a Focus mode can hide them unless Chore Board is allowed.
             </Body>
           )}

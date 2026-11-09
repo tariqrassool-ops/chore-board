@@ -34,10 +34,26 @@ test('does not alert before the chore is due', () => {
   assert.equal(dueAlerts(household(), new Date('2026-11-09T17:59:00Z')).length, 0);
 });
 
-test('skips chores that are done or already alerted', () => {
+test('skips chores that are done or were alerted in the last few minutes', () => {
   const done = { 'feed|2026-11-09': { by: 'a', at: 0, pts: 1, name: 'x' } };
   assert.equal(dueAlerts(household({ done }), JUST_AFTER).length, 0);
-  assert.equal(dueAlerts(household({ alerted: { 'feed|2026-11-09': 1 } }), JUST_AFTER).length, 0);
+  const alerted = { 'feed|2026-11-09': JUST_AFTER.getTime() - 60_000 };
+  assert.equal(dueAlerts(household({ alerted }), JUST_AFTER).length, 0);
+});
+
+test('repeats an alert until the chore is done', () => {
+  const later = new Date('2026-11-09T18:06:00Z');
+  const alerted = { 'feed|2026-11-09': JUST_AFTER.getTime() };
+  const alerts = dueAlerts(household({ alerted }), later);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0].body, /Still to do/);
+  const done = { 'feed|2026-11-09': { by: 'a', at: 0, pts: 1, name: 'x' } };
+  assert.equal(dueAlerts(household({ alerted, done }), later).length, 0);
+});
+
+test('stops repeating once the chore is too late', () => {
+  const alerted = { 'feed|2026-11-09': new Date('2026-11-09T18:40:00Z').getTime() };
+  assert.equal(dueAlerts(household({ alerted }), new Date('2026-11-09T18:46:00Z')).length, 0);
 });
 
 test('gives up on alerts that are too late', () => {
