@@ -3,7 +3,7 @@
 A shared daily chore board for the household. Chores are shared out fairly by effort points, and each person's phone alerts them when one of their chores is due, even if the phone is locked or another app is open.
 
 - **Android:** the Chore Board app. It sets a full-screen alarm with sound that keeps ringing until it's marked done, snoozed or dismissed, like the Clock app.
-- **iPhone:** the same board as a web app added to the home screen from Safari (iOS 16.4 or later). Alerts arrive as notifications with sound on the lock screen and over other apps. A GitHub scheduled job sends them, usually within 5 to 15 minutes of the chore's time. No App Store or Apple developer account is needed.
+- **iPhone:** the same board as a web app added to the home screen from Safari (iOS 16.4 or later). Alerts arrive as notifications with sound on the lock screen and over other apps. A GitHub scheduled job sends them, usually within 5 to 15 minutes of the chore's time. A notification can't keep ringing like an alarm, so it comes again about every 5 minutes until the chore is marked done, for up to 45 minutes. No App Store or Apple developer account is needed.
 
 Everything runs on free plans: Firebase's free Spark plan and GitHub Actions on a public repository.
 
@@ -76,4 +76,4 @@ The app uses Expo Router (`src/app`), Firebase Firestore for the shared board (o
 
 - **Android app:** each phone schedules its own alarms locally for the next 7 days and refreshes them whenever the board changes or the app is opened, so alarms ring even with no internet. Open the app at least once a week to keep them topped up.
 - **Web board (iPhone):** the same code built for the web (`npm run build:web`). Files ending `.web.ts` replace their native versions there. Each browser registers under `households/<code>/devices` once alerts are on, and `public/sw.js` shows the pushes.
-- **Alert job (`server/`, run by `.github/workflows/alerts.yml`):** checks once per run for chores that have come due in the last 45 minutes in each household's time zone, and pushes to that person's registered browsers, each alert once. It reuses `src/lib/schedule.ts`. Test it with `npm --prefix server test`.
+- **Alert job (`server/`, run by `.github/workflows/alerts.yml`):** checks once per run for chores that have come due in the last 45 minutes in each household's time zone, and pushes to that person's registered browsers. It repeats an alert on later runs (at least 4 minutes apart) until the chore is done or 45 minutes have passed. It reuses `src/lib/schedule.ts`. Test it with `npm --prefix server test`.

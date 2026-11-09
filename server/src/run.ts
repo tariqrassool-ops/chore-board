@@ -45,7 +45,7 @@ async function main() {
         sent += res.successCount;
         console.log(`${alert.key}: sent to ${res.successCount}, failed ${res.failureCount}`);
       }
-      // Recorded even with no devices, so the alert isn't retried every run.
+      // When it was last sent, so the next one waits REPEAT_MINUTES. Recorded even with no devices.
       updates.push(new FieldPath('alerted', alert.key), now.getTime());
     }
     for (const k of stale) updates.push(new FieldPath('alerted', k), FieldValue.delete());
