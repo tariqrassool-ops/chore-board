@@ -34,17 +34,20 @@ jobs:
         run: npx --yes eas-cli@27.5.0 init --non-interactive --force
       - name: Build the APK
         run: |
-          npx --yes eas-cli@27.5.0 build --profile preview --platform android --non-interactive --json > "$RUNNER_TEMP/build.json"
-          URL=$(node -e "const b=require(process.argv[1])[0]; console.log(b.artifacts?.buildUrl || '')" "$RUNNER_TEMP/build.json")
-          PAGE=$(node -e "const b=require(process.argv[1])[0]; console.log('https://expo.dev/accounts/'+b.project.ownerAccount.name+'/projects/'+b.project.slug+'/builds/'+b.id)" "$RUNNER_TEMP/build.json")
+          npx --yes eas-cli@27.5.0 build --profile preview --platform android --non-interactive --json \
+            > "$RUNNER_TEMP/build.json" 2> >(tee "$RUNNER_TEMP/build.log" >&2)
+          URL=$(node -e "const b=[].concat(require(process.argv[1]))[0]||{}; console.log((b.artifacts&&b.artifacts.buildUrl)||'')" "$RUNNER_TEMP/build.json" || true)
+          PAGE=$(grep -o 'https://expo.dev/[^ ]*/builds/[A-Za-z0-9-]*' "$RUNNER_TEMP/build.log" | head -1 || true)
           echo "APK: $URL"
           echo "Build page: $PAGE"
           {
             echo "## Android app is ready"
             echo
-            echo "Open this on each Android phone to download and install it:"
-            echo
-            echo "**[Download Chore Board APK]($URL)**"
-            echo
-            echo "Build page (with a QR code): $PAGE"
+            if [ -n "$URL" ]; then
+              echo "Open this on each Android phone to download and install it:"
+              echo
+              echo "**[Download Chore Board APK]($URL)**"
+              echo
+            fi
+            echo "Build page, with an Install button and a QR code: $PAGE"
           } >> "$GITHUB_STEP_SUMMARY"
